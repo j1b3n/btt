@@ -29,7 +29,7 @@ interface Token {
   logoURI?: string;
 }
 
-const FILTERED_SYMBOLS: string[] = [];
+const FILTERED_SYMBOLS: string[] = ['BSWAP-LP', 'STKD-UNI-V2', 'cbETH', 'USD+', 'DAI', 'sUSDe', 'USDe', 'UNI-V2', 'oUSDT', 'WETH', 'USDC', 'cbBTC', 'USDbC', 'EURC', 'cbBTC', 'tBTC'];
 
 const shouldFilterToken = (symbol: string): boolean => {
   if (FILTERED_SYMBOLS.includes(symbol)) return true;
