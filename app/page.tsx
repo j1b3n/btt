@@ -29,7 +29,23 @@ interface Token {
   logoURI?: string;
 }
 
-const FILTERED_SYMBOLS: string[] = ['BSWAP-LP', 'STKD-UNI-V2', 'cbETH', 'USD+', 'DAI', 'sUSDe', 'USDe', 'UNI-V2', 'oUSDT', 'WETH', 'USDC', 'cbBTC', 'USDbC', 'EURC', 'cbBTC', 'tBTC'];
+const FILTERED_SYMBOLS: string[] = [
+  'BSWAP-LP',
+  'STKD-UNI-V2',
+  'cbETH',
+  'USD+',
+  'DAI',
+  'sUSDe',
+  'USDe',
+  'UNI-V2',
+  'oUSDT',
+  'WETH',
+  'USDC',
+  'cbBTC',
+  'USDbC',
+  'EURC',
+  'tBTC'
+];
 
 const shouldFilterToken = (symbol: string): boolean => {
   if (FILTERED_SYMBOLS.includes(symbol)) return true;
@@ -266,22 +282,6 @@ export default function App() {
             </div>
           </div>
           <div className="nav-actions">
-            <Link href="/logs" className="btn btn-primary">
-              <svg
-                style={{ width: '1rem', height: '1rem' }}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M4 6h16M4 12h16m-7 6h7"
-                />
-              </svg>
-              Logs
-            </Link>
             <button
               onClick={handleRefresh}
               disabled={isRefreshing}
