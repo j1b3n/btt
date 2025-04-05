@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { usePublicClient } from 'wagmi';
 import { formatDistanceToNow } from 'date-fns';
 import { zeroAddress } from 'viem';
 import Link from 'next/link';
 import { logger } from './utils/logger';
+import { SecurityBadge } from './components/SecurityBadge';
 
 interface DexScreenerData {
   pairs: {
@@ -15,6 +16,10 @@ interface DexScreenerData {
       symbol: string;
       address: string;
       logoURI?: string;
+    };
+    priceChange: {
+      m5: number;
+      h1: number;
     };
   }[];
 }
@@ -27,6 +32,11 @@ interface Token {
   pairCreatedAt?: number;
   blockNumber: bigint;
   logoURI?: string;
+  priceChange?: {
+    m5: number;
+    h1: number;
+  };
+  lastUpdated?: number;
 }
 
 const FILTERED_SYMBOLS: string[] = [
@@ -46,6 +56,9 @@ const FILTERED_SYMBOLS: string[] = [
   'EURC',
   'tBTC'
 ];
+
+const UPDATE_INTERVAL = 30000; // 30 seconds
+const UPDATE_THRESHOLD = 20000; // 20 seconds
 
 const shouldFilterToken = (symbol: string): boolean => {
   if (FILTERED_SYMBOLS.includes(symbol)) return true;
@@ -71,6 +84,18 @@ const getTokenLogo = (address: string): string => {
   return `https://dd.dexscreener.com/ds-data/tokens/base/${address}.png`;
 };
 
+const PriceChangeIndicator = ({ value }: { value: number | undefined }) => {
+  if (value === undefined || isNaN(value)) {
+    return <span className="token-stat-change">NaN%</span>;
+  }
+  const isPositive = value >= 0;
+  return (
+    <span className={`token-stat-change ${isPositive ? 'positive' : 'negative'}`}>
+      {isPositive ? '↑' : '↓'} {Math.abs(value).toFixed(2)}%
+    </span>
+  );
+};
+
 export default function App() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [startBlock, setStartBlock] = useState<bigint | null>(null);
@@ -78,6 +103,75 @@ export default function App() {
   const [isInitialized, setIsInitialized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const publicClient = usePublicClient();
+
+  const fetchDexScreenerData = async (address: string): Promise<{ pairCreatedAt?: number; logoURI?: string; priceChange?: { m5: number; h1: number } } | undefined> => {
+    try {
+      logger.api(`Fetching DexScreener data for ${address}`, 'pending');
+      const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
+      
+      if (!response.ok) {
+        logger.api(`DexScreener API error for ${address}`, 'error', `Status: ${response.status}`);
+        return undefined;
+      }
+      
+      const data: DexScreenerData = await response.json();
+      if (!data.pairs || data.pairs.length === 0) {
+        logger.api(`No pairs found for ${address}`, 'error');
+        return undefined;
+      }
+      
+      const logoURI = getTokenLogo(address);
+      logger.api(`Successfully fetched data for ${address}`, 'success');
+      
+      return {
+        pairCreatedAt: data.pairs[0].pairCreatedAt,
+        logoURI,
+        priceChange: {
+          m5: data.pairs[0].priceChange.m5,
+          h1: data.pairs[0].priceChange.h1,
+        },
+      };
+    } catch (error) {
+      logger.api(`Error fetching DexScreener data for ${address}`, 'error', error instanceof Error ? error.message : 'Unknown error');
+      return undefined;
+    }
+  };
+
+  useEffect(() => {
+    if (!tokens.length) return;
+
+    const updatePriceData = async () => {
+      const now = Date.now();
+      const tokensToUpdate = tokens.filter(token => 
+        !token.lastUpdated || now - token.lastUpdated > UPDATE_THRESHOLD
+      );
+
+      if (!tokensToUpdate.length) return;
+
+      const updatedTokens = await Promise.all(
+        tokensToUpdate.map(async (token) => {
+          const data = await fetchDexScreenerData(token.address);
+          if (!data) return token;
+
+          return {
+            ...token,
+            priceChange: data.priceChange,
+            lastUpdated: now,
+          };
+        })
+      );
+
+      setTokens(prevTokens => {
+        const tokenMap = new Map(prevTokens.map(t => [t.address, t]));
+        updatedTokens.forEach(token => tokenMap.set(token.address, token));
+        return Array.from(tokenMap.values());
+      });
+    };
+
+    updatePriceData();
+    const interval = setInterval(updatePriceData, UPDATE_INTERVAL);
+    return () => clearInterval(interval);
+  }, [tokens]);
 
   useEffect(() => {
     const cachedTokens = localStorage.getItem('baseTokens');
@@ -101,35 +195,6 @@ export default function App() {
   useEffect(() => {
     setIsActive(tokens.length > 0);
   }, [tokens]);
-
-  const fetchDexScreenerData = async (address: string): Promise<{ pairCreatedAt?: number; logoURI?: string } | undefined> => {
-    try {
-      logger.api(`Fetching DexScreener data for ${address}`, 'pending');
-      const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
-      
-      if (!response.ok) {
-        logger.api(`DexScreener API error for ${address}`, 'error', `Status: ${response.status}`);
-        return undefined;
-      }
-      
-      const data: DexScreenerData = await response.json();
-      if (!data.pairs || data.pairs.length === 0) {
-        logger.api(`No pairs found for ${address}`, 'error');
-        return undefined;
-      }
-      
-      const logoURI = getTokenLogo(address);
-      logger.api(`Successfully fetched data for ${address}`, 'success');
-      
-      return {
-        pairCreatedAt: data.pairs[0].pairCreatedAt,
-        logoURI,
-      };
-    } catch (error) {
-      logger.api(`Error fetching DexScreener data for ${address}`, 'error', error instanceof Error ? error.message : 'Unknown error');
-      return undefined;
-    }
-  };
 
   const handleRefresh = () => {
     setIsRefreshing(true);
@@ -172,7 +237,7 @@ export default function App() {
         });
 
         publicClient.watchEvent({
-          ...filter as any,
+          ...filter,
           onLogs: async (logs) => {
             for (const log of logs) {
               try {
@@ -199,13 +264,6 @@ export default function App() {
                       inputs: [],
                       name: 'symbol',
                       outputs: [{ name: '', type: 'string' }],
-                      type: 'function',
-                    },
-                    {
-                      constant: true,
-                      inputs: [],
-                      name: 'decimals',
-                      outputs: [{ name: '', type: 'uint8' }],
                       type: 'function',
                     },
                   ],
@@ -241,6 +299,8 @@ export default function App() {
                   timestamp: blockTimestamp,
                   pairCreatedAt: dexScreenerData.pairCreatedAt,
                   logoURI: dexScreenerData.logoURI,
+                  priceChange: dexScreenerData.priceChange,
+                  lastUpdated: Date.now(),
                   blockNumber: log.blockNumber,
                 };
 
@@ -264,7 +324,12 @@ export default function App() {
     fetchNewTokens();
   }, [publicClient, startBlock, isInitialized]);
 
-  const tokensWithPairs = tokens.filter(token => token.pairCreatedAt);
+  // Filter tokens with pairs and price variation
+  const tokensToDisplay = tokens.filter(token => 
+    token.pairCreatedAt && // Has trading pair
+    token.priceChange?.h1 !== 0 && // Price has changed in the last hour
+    token.priceChange?.h1 !== undefined // Price change data exists
+  );
 
   return (
     <div>
@@ -335,7 +400,7 @@ export default function App() {
       </nav>
 
       <main className="main container">
-        {tokensWithPairs.length === 0 ? (
+        {tokensToDisplay.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state-icon">
               <div className="empty-state-icon-inner">
@@ -346,12 +411,12 @@ export default function App() {
             </div>
             <h2>Scanning for New Tokens</h2>
             <p>
-              We're actively monitoring the Base network for tokens with active trading pairs. Only tokens with liquidity will appear here.
+              We're actively monitoring the Base network for tokens with active trading pairs. Only tokens with liquidity and price movement will appear here.
             </p>
           </div>
         ) : (
           <div className="token-list">
-            {tokensWithPairs.map((token) => (
+            {tokensToDisplay.map((token) => (
               <Link
                 key={token.address}
                 href={`/${token.address}`}
@@ -387,9 +452,17 @@ export default function App() {
                             Created {formatDistanceToNow(token.pairCreatedAt!, { addSuffix: true })}
                           </span>
                         </div>
-                        <code className="token-address">
-                          {token.address}
-                        </code>
+                        <SecurityBadge address={token.address} />
+                        <div className="token-price-changes">
+                          <div className="price-change-row">
+                            <span>5m:</span>
+                            <PriceChangeIndicator value={token.priceChange?.m5} />
+                          </div>
+                          <div className="price-change-row">
+                            <span>1h:</span>
+                            <PriceChangeIndicator value={token.priceChange?.h1} />
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
