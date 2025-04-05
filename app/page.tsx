@@ -2,28 +2,56 @@
 
 import React, { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePublicClient } from 'wagmi';
 import { formatDistanceToNow } from 'date-fns';
 import { zeroAddress } from 'viem';
+import { createPublicClient, http } from 'viem';
+import { base } from 'viem/chains';
 import Link from 'next/link';
 import { logger } from './utils/logger';
 import { SecurityBadge } from './components/SecurityBadge';
 import { LogDisplay } from './components/LogDisplay';
 import { OptionsCard } from './components/OptionsCard';
+import { POPULAR_VOTE_TOKENS } from './types/security';
+import { formatNumber } from './utils/format';
 
 interface DexScreenerData {
   pairs: {
-    pairCreatedAt: number;
+    chainId: string;
+    dexId: string;
+    url: string;
+    pairAddress: string;
     baseToken: {
       name: string;
       symbol: string;
       address: string;
       logoURI?: string;
     };
+    quoteToken: {
+      symbol: string;
+    };
+    priceNative: string;
+    priceUsd: string;
+    txns: {
+      h24: {
+        buys: number;
+        sells: number;
+      };
+    };
+    volume: {
+      h24: number;
+    };
     priceChange: {
       m5: number;
       h1: number;
+      h6: number;
+      h24: number;
     };
+    liquidity: {
+      usd: number;
+    };
+    fdv: number;
+    marketCap: number;
+    pairCreatedAt: number;
   }[];
 }
 
@@ -39,10 +67,13 @@ interface Token {
     m5: number;
     h1: number;
   };
+  marketCap?: number;
   lastUpdated?: number;
+  isPopularVote?: boolean;
+  firstSeen?: number;
 }
 
-const FILTERED_SYMBOLS: string[] = [
+const FILTERED_SYMBOLS = [
   'BSWAP-LP',
   'STKD-UNI-V2',
   'cbETH',
@@ -58,11 +89,16 @@ const FILTERED_SYMBOLS: string[] = [
   'USDbC',
   'EURC',
   'tBTC',
-  'aBasWETH'
+  'aBasWETH',
+  'axlUSDC',
+  'flETH',
+  'mwETH',
+  'WBTC',
+  'rsETH'
 ];
 
-const UPDATE_INTERVAL = 30000; // 30 seconds
-const UPDATE_THRESHOLD = 20000; // 20 seconds
+const UPDATE_INTERVAL = 30000;
+const UPDATE_THRESHOLD = 20000;
 
 const shouldFilterToken = (symbol: string): boolean => {
   if (FILTERED_SYMBOLS.includes(symbol)) return true;
@@ -88,6 +124,10 @@ const getTokenLogo = (address: string): string => {
   return `https://dd.dexscreener.com/ds-data/tokens/base/${address}.png`;
 };
 
+const getTokenBanner = (address: string): string => {
+  return `https://dd.dexscreener.com/ds-data/tokens/base/${address}/header.png`;
+};
+
 const PriceChangeIndicator = ({ value }: { value: number | undefined }) => {
   if (value === undefined || isNaN(value)) {
     return <span className="token-stat-change">NaN%</span>;
@@ -100,17 +140,44 @@ const PriceChangeIndicator = ({ value }: { value: number | undefined }) => {
   );
 };
 
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(),
+});
+
+const tokenABI = [
+  {
+    constant: true,
+    inputs: [],
+    name: 'name',
+    outputs: [{ name: '', type: 'string' }],
+    type: 'function',
+  },
+  {
+    constant: true,
+    inputs: [],
+    name: 'symbol',
+    outputs: [{ name: '', type: 'string' }],
+    type: 'function',
+  },
+] as const;
+
 export default function App() {
   const [tokens, setTokens] = useState<Token[]>([]);
   const [startBlock, setStartBlock] = useState<bigint | null>(null);
   const [isActive, setIsActive] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const publicClient = usePublicClient();
+  const previousDataRef = useRef<Token[]>([]);
 
-  const fetchDexScreenerData = async (address: string): Promise<{ pairCreatedAt?: number; logoURI?: string; priceChange?: { m5: number; h1: number } } | undefined> => {
+  const fetchTokenData = async (address: string): Promise<{ 
+    pairCreatedAt?: number; 
+    logoURI?: string; 
+    priceChange?: { m5: number; h1: number };
+    marketCap?: number;
+  } | undefined> => {
     try {
-      logger.api(`Fetching DexScreener data for ${address}`, 'pending');
+      logger.api(`Fetching token data for ${address}`, 'pending');
       const response = await fetch(`https://api.dexscreener.com/latest/dex/tokens/${address}`);
       
       if (!response.ok) {
@@ -134,17 +201,32 @@ export default function App() {
           m5: data.pairs[0].priceChange.m5,
           h1: data.pairs[0].priceChange.h1,
         },
+        marketCap: data.pairs[0].marketCap,
       };
     } catch (error) {
-      logger.api(`Error fetching DexScreener data for ${address}`, 'error', error instanceof Error ? error.message : 'Unknown error');
+      logger.api(`Error fetching token data for ${address}`, 'error', error instanceof Error ? error.message : 'Unknown error');
       return undefined;
     }
+  };
+
+  const updateTokenData = async (token: Token): Promise<Token> => {
+    const data = await fetchTokenData(token.address);
+    if (!data) return token;
+
+    return {
+      ...token,
+      pairCreatedAt: data.pairCreatedAt,
+      logoURI: data.logoURI,
+      priceChange: data.priceChange,
+      marketCap: data.marketCap,
+      lastUpdated: Date.now(),
+    };
   };
 
   useEffect(() => {
     if (!tokens.length) return;
 
-    const updatePriceData = async () => {
+    const updateTokens = async () => {
       const now = Date.now();
       const tokensToUpdate = tokens.filter(token => 
         !token.lastUpdated || now - token.lastUpdated > UPDATE_THRESHOLD
@@ -152,30 +234,85 @@ export default function App() {
 
       if (!tokensToUpdate.length) return;
 
-      const updatedTokens = await Promise.all(
-        tokensToUpdate.map(async (token) => {
-          const data = await fetchDexScreenerData(token.address);
-          if (!data) return token;
-
-          return {
-            ...token,
-            priceChange: data.priceChange,
-            lastUpdated: now,
-          };
-        })
-      );
+      const updatedTokens = await Promise.all(tokensToUpdate.map(updateTokenData));
 
       setTokens(prevTokens => {
         const tokenMap = new Map(prevTokens.map(t => [t.address, t]));
-        updatedTokens.forEach(token => tokenMap.set(token.address, token));
+        updatedTokens.forEach(token => {
+          const existing = tokenMap.get(token.address);
+          if (existing) {
+            tokenMap.set(token.address, {
+              ...token,
+              firstSeen: existing.firstSeen,
+            });
+          }
+        });
         return Array.from(tokenMap.values());
       });
     };
 
-    updatePriceData();
-    const interval = setInterval(updatePriceData, UPDATE_INTERVAL);
+    updateTokens();
+    const interval = setInterval(updateTokens, UPDATE_INTERVAL);
     return () => clearInterval(interval);
   }, [tokens]);
+
+  const fetchPopularVoteTokens = async () => {
+    for (const address of POPULAR_VOTE_TOKENS) {
+      try {
+        const [nameResult, symbolResult] = await Promise.all([
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: tokenABI,
+            functionName: 'name',
+          }) as Promise<string>,
+          publicClient.readContract({
+            address: address as `0x${string}`,
+            abi: tokenABI,
+            functionName: 'symbol',
+          }) as Promise<string>,
+        ]);
+
+        const data = await fetchTokenData(address);
+        
+        if (data?.pairCreatedAt && data.priceChange) {
+          setTokens(prevTokens => {
+            const existingToken = prevTokens.find(t => t.address.toLowerCase() === address.toLowerCase());
+            const newToken: Token = {
+              address,
+              name: nameResult,
+              symbol: symbolResult,
+              timestamp: existingToken?.timestamp || Date.now(),
+              pairCreatedAt: data.pairCreatedAt,
+              logoURI: data.logoURI,
+              priceChange: data.priceChange,
+              marketCap: data.marketCap,
+              lastUpdated: Date.now(),
+              blockNumber: BigInt(0),
+              isPopularVote: true,
+              firstSeen: existingToken?.firstSeen || Date.now(),
+            };
+
+            if (existingToken) {
+              return prevTokens.map(t => 
+                t.address.toLowerCase() === address.toLowerCase() ? newToken : t
+              );
+            }
+            return [...prevTokens, newToken];
+          });
+        }
+      } catch (error) {
+        console.error(`Error fetching popular vote token ${address}:`, error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (!isInitialized) return;
+    
+    fetchPopularVoteTokens();
+    const interval = setInterval(fetchPopularVoteTokens, UPDATE_INTERVAL);
+    return () => clearInterval(interval);
+  }, [isInitialized]);
 
   useEffect(() => {
     const cachedTokens = localStorage.getItem('baseTokens');
@@ -213,7 +350,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!isInitialized || !publicClient) return;
+    if (!isInitialized) return;
 
     const fetchNewTokens = async () => {
       try {
@@ -234,15 +371,7 @@ export default function App() {
           type: 'event',
         } as const;
 
-        const filter = await publicClient.createEventFilter({
-          event: transferEvent,
-          fromBlock,
-          args: {
-            from: zeroAddress,
-          },
-        });
-
-        publicClient.watchEvent({
+        const unwatch = publicClient.watchEvent({
           event: transferEvent,
           args: {
             from: zeroAddress,
@@ -258,59 +387,55 @@ export default function App() {
                 const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
                 if (blockTimestamp < twoHoursAgo) continue;
 
-                const tokenContract = {
-                  address: log.address,
-                  abi: [
-                    {
-                      constant: true,
-                      inputs: [],
-                      name: 'name',
-                      outputs: [{ name: '', type: 'string' }],
-                      type: 'function',
-                    },
-                    {
-                      constant: true,
-                      inputs: [],
-                      name: 'symbol',
-                      outputs: [{ name: '', type: 'string' }],
-                      type: 'function',
-                    },
-                  ],
-                };
+                let name: string | null = null;
+                let symbol: string | null = null;
 
-                let [name, symbol] = await Promise.all([
-                  publicClient.readContract({
-                    ...tokenContract,
+                try {
+                  name = (await publicClient.readContract({
+                    address: log.address,
+                    abi: tokenABI,
                     functionName: 'name',
-                  }).catch(() => null),
-                  publicClient.readContract({
-                    ...tokenContract,
-                    functionName: 'symbol',
-                  }).catch(() => null),
-                ]);
+                  })) as string;
+                } catch (error) {
+                  console.warn(`Failed to fetch name for token ${log.address}:`, error);
+                  continue;
+                }
 
-                if (symbol && shouldFilterToken(symbol as string)) {
+                try {
+                  symbol = (await publicClient.readContract({
+                    address: log.address,
+                    abi: tokenABI,
+                    functionName: 'symbol',
+                  })) as string;
+                } catch (error) {
+                  console.warn(`Failed to fetch symbol for token ${log.address}:`, error);
+                  continue;
+                }
+
+                if (!name || !symbol || shouldFilterToken(symbol)) {
                   console.log(`Filtering out token ${log.address} with symbol ${symbol}`);
                   continue;
                 }
 
-                const dexScreenerData = await fetchDexScreenerData(log.address);
+                const data = await fetchTokenData(log.address);
 
-                if (!dexScreenerData?.pairCreatedAt) {
+                if (!data?.pairCreatedAt) {
                   console.log(`Skipping token ${log.address} without trading pair`);
                   continue;
                 }
 
                 const newToken = {
                   address: log.address,
-                  name: name as string | null,
-                  symbol: symbol as string | null,
+                  name,
+                  symbol,
                   timestamp: blockTimestamp,
-                  pairCreatedAt: dexScreenerData.pairCreatedAt,
-                  logoURI: dexScreenerData.logoURI,
-                  priceChange: dexScreenerData.priceChange,
+                  pairCreatedAt: data.pairCreatedAt,
+                  logoURI: data.logoURI,
+                  priceChange: data.priceChange,
+                  marketCap: data.marketCap,
                   lastUpdated: Date.now(),
                   blockNumber: log.blockNumber,
+                  firstSeen: Date.now(),
                 };
 
                 setTokens((prev) => {
@@ -325,19 +450,25 @@ export default function App() {
             }
           },
         });
+
+        return () => {
+          unwatch();
+        };
       } catch (error) {
         logger.blockchain('Error setting up event filter', 'error', error instanceof Error ? error.message : 'Unknown error');
       }
     };
 
     fetchNewTokens();
-  }, [publicClient, startBlock, isInitialized]);
+  }, [startBlock, isInitialized]);
 
   const tokensToDisplay = tokens.filter(token => 
     token.pairCreatedAt && 
     token.priceChange?.h1 !== 0 && 
-    token.priceChange?.h1 !== undefined 
+    token.priceChange?.h1 !== undefined
   );
+
+  tokensToDisplay.sort((a, b) => (b.firstSeen || 0) - (a.firstSeen || 0));
 
   return (
     <div>
@@ -434,6 +565,15 @@ export default function App() {
                 style={{ textDecoration: 'none' }}
               >
                 <div className="token-card">
+                  {token.logoURI && (
+                    <div className="token-banner">
+                      <img
+                        src={getTokenBanner(token.address)}
+                        alt={`${token.symbol} banner`}
+                        className="token-banner-image"
+                      />
+                    </div>
+                  )}
                   <div className="token-card-content">
                     <div className="token-info">
                       <div className="token-icon">
@@ -463,6 +603,17 @@ export default function App() {
                             Created {formatDistanceToNow(token.pairCreatedAt!, { addSuffix: true })}
                           </span>
                         </div>
+                        {token.marketCap && (
+                          <div 
+                            className="token-market-cap"
+                            style={{
+                              '--banner-image': `url(${getTokenBanner(token.address)})`,
+                            } as React.CSSProperties}
+                          >
+                            <span className="market-cap-value">{formatNumber(token.marketCap)}</span>
+                            <span className="market-cap-label">Market Cap</span>
+                          </div>
+                        )}
                         <SecurityBadge address={token.address} />
                         <div className="token-price-changes">
                           <div className="price-change-row">

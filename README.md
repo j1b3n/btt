@@ -11,6 +11,7 @@ Base Token Tracker is a specialized monitoring platform that tracks tokens on th
   - Price movement in the last hour
   - Legitimate trading patterns
 - Automatic filtering of known liquidity pool tokens and stablecoins
+- Data updates every ~30 seconds to ensure accuracy
 
 ### Token Information
 Each token page displays comprehensive information:
@@ -23,8 +24,6 @@ Each token page displays comprehensive information:
 - Liquidity metrics
 - DEX information
 - Contract address
-  
-All datas are actualised every ~30 seconds
 
 ### Security Features
 - Integration with trusted platforms (e.g., CLANKER)
@@ -32,25 +31,40 @@ All datas are actualised every ~30 seconds
   - AI-created tokens
   - Platform verification
   - Community trust status
+  - Popular vote status
+- Cached security status for faster loading
+- Trusted token list
+- Popular vote token tracking
 
 ### System Monitoring
 - Real-time system logs (optional display)
 - API and blockchain interaction monitoring
+- Performance optimizations:
+  - Local storage caching
+  - Efficient data updates
+  - Smart refresh mechanisms
 
 ## 🔄 Active Development
 
 This project is currently in active development. New features and improvements are being added regularly:
 
-### Recent Updates
+### Recent Updates (04/04-05/2025)
 - Added security verification system with CLANKER integration
 - Implemented optional system logs display
 - Enhanced token filtering based on price movement
 - Improved UI/UX with security badges
+- Added market cap display with formatted values
+- Implemented popular vote token tracking
+- Added token sorting by first seen timestamp
+- Optimized data refresh mechanisms
+- Added security status caching
 
 ### Upcoming Features
 - Additional platform integrations (e.g., CLIZA.ai)
 - Enhanced security verification
 - Advanced filtering options
+- More detailed token analytics
+- Social features and community voting
 
 ## 🛠 Technical Stack
 
@@ -67,6 +81,9 @@ This project is currently in active development. New features and improvements a
   - Base Network blockchain data
   - DexScreener API
   - Platform-specific APIs (CLANKER, etc.)
+- **Storage**:
+  - Local storage for caching
+  - Zustand persist for state persistence
 
 ## ⚠️ Disclaimer
 

@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { formatDistanceToNow } from 'date-fns';
 import { logger } from '../utils/logger';
+import { SecurityBadge } from '../components/SecurityBadge';
+import { getTokenSecurityStatus } from '../types/security';
 
 interface PairData {
   chainId: string;
@@ -54,6 +56,10 @@ interface TokenDetails {
 
 const getTokenLogo = (address: string): string => {
   return `https://dd.dexscreener.com/ds-data/tokens/base/${address}.png`;
+};
+
+const getTokenBanner = (address: string): string => {
+  return `https://dd.dexscreener.com/ds-data/tokens/base/${address}/header.png`;
 };
 
 const LoadingSkeleton = () => (
@@ -130,8 +136,28 @@ export default function TokenDetails({ params }: { params: { address: string } }
   const [tokenData, setTokenData] = useState<TokenDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showUpdateIndicator, setShowUpdateIndicator] = useState(false);
+  const [showCopiedMessage, setShowCopiedMessage] = useState(false);
+  const [securityStatus, setSecurityStatus] = useState<any>(null);
   const previousDataRef = useRef<TokenDetails | null>(null);
   const router = useRouter();
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setShowCopiedMessage(true);
+      setTimeout(() => setShowCopiedMessage(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
+
+  useEffect(() => {
+    const fetchSecurityStatus = async () => {
+      const status = await getTokenSecurityStatus(params.address);
+      setSecurityStatus(status);
+    };
+    fetchSecurityStatus();
+  }, [params.address]);
 
   const fetchTokenData = async () => {
     try {
@@ -152,7 +178,6 @@ export default function TokenDetails({ params }: { params: { address: string } }
         data.pairs[0].baseToken.logoURI = logoURI;
       }
 
-      // Check if data has actually changed
       if (hasDataChanged(previousDataRef.current, data)) {
         setShowUpdateIndicator(true);
         setTimeout(() => setShowUpdateIndicator(false), 1000);
@@ -231,6 +256,15 @@ export default function TokenDetails({ params }: { params: { address: string } }
 
       <main className="main container">
         <div className="token-card">
+          {mainPair.baseToken.logoURI && (
+            <div className="token-banner">
+              <img
+                src={getTokenBanner(mainPair.baseToken.address)}
+                alt={`${mainPair.baseToken.symbol} banner`}
+                className="token-banner-image"
+              />
+            </div>
+          )}
           <div className="token-card-content">
             <div className="token-info">
               <div className="token-icon" style={{ width: '4rem', height: '4rem' }}>
@@ -260,6 +294,7 @@ export default function TokenDetails({ params }: { params: { address: string } }
                     Created {formatDistanceToNow(mainPair.pairCreatedAt, { addSuffix: true })}
                   </span>
                 </div>
+                <SecurityBadge address={mainPair.baseToken.address} />
               </div>
             </div>
           </div>
@@ -346,13 +381,57 @@ export default function TokenDetails({ params }: { params: { address: string } }
         </div>
 
         <div className="token-card" style={{ marginTop: '1.5rem' }}>
+          {mainPair.baseToken.logoURI && (
+            <div className="token-banner">
+              <img
+                src={getTokenBanner(mainPair.baseToken.address)}
+                alt={`${mainPair.baseToken.symbol} banner`}
+                className="token-banner-image"
+              />
+            </div>
+          )}
           <div className="token-card-content">
             <h3 className="text-sm font-medium" style={{ color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
               Contract Address
             </h3>
-            <code className="token-address" style={{ padding: '1rem', background: 'var(--nav-bg)', borderRadius: '0.5rem', display: 'block' }}>
-              {mainPair.baseToken.address}
-            </code>
+            <div className="contract-info">
+              <code 
+                className="token-address" 
+                onClick={() => copyToClipboard(mainPair.baseToken.address)}
+                title="Click to copy"
+              >
+                {mainPair.baseToken.address}
+              </code>
+              <div className="contract-actions">
+                {showCopiedMessage && (
+                  <span className="copied-message">Copied!</span>
+                )}
+                <a
+                  href={`https://basescan.org/token/${mainPair.baseToken.address}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="basescan-link"
+                  title="View on BaseScan"
+                >
+                  <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM10 18C5.59 18 2 14.41 2 10C2 5.59 5.59 2 10 2C14.41 2 18 5.59 18 10C18 14.41 14.41 18 10 18ZM9 14H11V16H9V14ZM10.61 4.04C8.55 3.74 6.73 5.01 6.18 6.83C6 7.41 6.44 8 7.05 8H7.25C7.66 8 7.99 7.71 8.13 7.33C8.45 6.44 9.4 5.83 10.43 6.05C11.38 6.25 12.08 7.18 12 8.15C11.9 9.49 10.38 9.78 9.55 11.03C9.55 11.04 9.54 11.04 9.54 11.05C9.53 11.07 9.52 11.08 9.51 11.1C9.42 11.25 9.33 11.42 9.26 11.6C9.25 11.63 9.23 11.65 9.22 11.68C9.21 11.7 9.21 11.72 9.2 11.75C9.08 12.09 9 12.5 9 13H11C11 12.58 11.11 12.23 11.28 11.93C11.3 11.9 11.31 11.87 11.33 11.84C11.41 11.7 11.51 11.57 11.61 11.45C11.62 11.44 11.63 11.42 11.64 11.41C11.74 11.29 11.85 11.18 11.97 11.07C12.93 10.16 14.23 9.42 13.96 7.51C13.72 5.77 12.35 4.3 10.61 4.04Z" fill="currentColor"/>
+                  </svg>
+                </a>
+                {securityStatus?.platform?.name === 'CLANKER' && (
+                  <a
+                    href={`${securityStatus.platform.url}clanker/${mainPair.baseToken.address}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="clanker-link"
+                    title="View on CLANKER"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M10 0C4.48 0 0 4.48 0 10C0 15.52 4.48 20 10 20C15.52 20 20 15.52 20 10C20 4.48 15.52 0 10 0ZM10 18C5.59 18 2 14.41 2 10C2 5.59 5.59 2 10 2C14.41 2 18 5.59 18 10C18 14.41 14.41 18 10 18ZM11 5H9V7H11V5ZM11 9H9V15H11V9Z" fill="currentColor"/>
+                    </svg>
+                  </a>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </main>
