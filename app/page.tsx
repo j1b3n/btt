@@ -1,12 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { usePublicClient } from 'wagmi';
 import { formatDistanceToNow } from 'date-fns';
 import { zeroAddress } from 'viem';
 import Link from 'next/link';
 import { logger } from './utils/logger';
 import { SecurityBadge } from './components/SecurityBadge';
+import { LogDisplay } from './components/LogDisplay';
+import { OptionsCard } from './components/OptionsCard';
 
 interface DexScreenerData {
   pairs: {
@@ -54,7 +57,8 @@ const FILTERED_SYMBOLS: string[] = [
   'cbBTC',
   'USDbC',
   'EURC',
-  'tBTC'
+  'tBTC',
+  'aBasWETH'
 ];
 
 const UPDATE_INTERVAL = 30000; // 30 seconds
@@ -219,17 +223,19 @@ export default function App() {
         setStartBlock(fromBlock);
         logger.blockchain('Successfully set up event filter', 'success', `From block: ${fromBlock}`);
 
+        const transferEvent = {
+          anonymous: false,
+          inputs: [
+            { indexed: true, name: 'from', type: 'address' },
+            { indexed: true, name: 'to', type: 'address' },
+            { indexed: false, name: 'value', type: 'uint256' },
+          ],
+          name: 'Transfer',
+          type: 'event',
+        } as const;
+
         const filter = await publicClient.createEventFilter({
-          event: {
-            anonymous: false,
-            inputs: [
-              { indexed: true, name: 'from', type: 'address' },
-              { indexed: true, name: 'to', type: 'address' },
-              { indexed: false, name: 'value', type: 'uint256' },
-            ],
-            name: 'Transfer',
-            type: 'event',
-          },
+          event: transferEvent,
           fromBlock,
           args: {
             from: zeroAddress,
@@ -237,7 +243,10 @@ export default function App() {
         });
 
         publicClient.watchEvent({
-          ...filter,
+          event: transferEvent,
+          args: {
+            from: zeroAddress,
+          },
           onLogs: async (logs) => {
             for (const log of logs) {
               try {
@@ -324,11 +333,10 @@ export default function App() {
     fetchNewTokens();
   }, [publicClient, startBlock, isInitialized]);
 
-  // Filter tokens with pairs and price variation
   const tokensToDisplay = tokens.filter(token => 
-    token.pairCreatedAt && // Has trading pair
-    token.priceChange?.h1 !== 0 && // Price has changed in the last hour
-    token.priceChange?.h1 !== undefined // Price change data exists
+    token.pairCreatedAt && 
+    token.priceChange?.h1 !== 0 && 
+    token.priceChange?.h1 !== undefined 
   );
 
   return (
@@ -398,6 +406,9 @@ export default function App() {
           </div>
         </div>
       </nav>
+
+      <OptionsCard />
+      <LogDisplay />
 
       <main className="main container">
         {tokensToDisplay.length === 0 ? (

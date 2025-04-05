@@ -1,6 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 export interface Log {
   id: string;
@@ -17,15 +18,26 @@ export interface Log {
 
 interface LoggerStore {
   logs: Log[];
+  showLogs: boolean;
   addLog: (log: Log) => void;
   clearLogs: () => void;
+  setShowLogs: (show: boolean) => void;
 }
 
-const useLoggerStore = create<LoggerStore>((set) => ({
-  logs: [],
-  addLog: (log) => set((state) => ({ logs: [log, ...state.logs].slice(0, 1000) })),
-  clearLogs: () => set({ logs: [] }),
-}));
+export const useLoggerStore = create<LoggerStore>()(
+  persist(
+    (set) => ({
+      logs: [],
+      showLogs: false,
+      addLog: (log) => set((state) => ({ logs: [log, ...state.logs].slice(0, 1000) })),
+      clearLogs: () => set({ logs: [] }),
+      setShowLogs: (show) => set({ showLogs: show }),
+    }),
+    {
+      name: 'logger-storage',
+    }
+  )
+);
 
 class Logger {
   private isClient: boolean;
