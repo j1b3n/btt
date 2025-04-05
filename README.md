@@ -21,13 +21,7 @@ The platform includes multiple layers of protection:
    - Minimum liquidity requirements must be met
    - Trading history must show legitimate market activity
 
-2. **Scam Prevention**
-   - Automatic filtering of suspicious token names and symbols
-   - Detection of common scam patterns
-   - Monitoring of unusual trading behavior
-   - Exclusion of tokens without proper contract verification
-
-3. **Data Verification**
+2. **Data Verification**
    - Cross-reference data from multiple sources
    - Real-time monitoring of trading activity
    - Verification of contract interactions
