@@ -23,6 +23,7 @@ Each token page displays comprehensive information:
 - Liquidity metrics
 - DEX information
 - Contract address
+All data are actualised every ~30 seconds
 
 ### Security Features
 - Integration with trusted platforms (e.g., CLANKER)
