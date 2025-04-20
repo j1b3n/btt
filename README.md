@@ -1,17 +1,31 @@
 # Base Token Tracker
 
-Base Token Tracker is a specialized monitoring platform that tracks tokens on the Base network with active trading pairs. The platform implements advanced filtering mechanisms and real-time monitoring to help users identify financial opportunities.
+Base Token Tracker is a specialized monitoring platform that tracks tokens on the Base network. The platform implements advanced filtering mechanisms and real-time monitoring to help users identify financial opportunities.
 
 ## 🚀 Features
 
 ### Token Discovery & Filtering
 - Real-time monitoring of new token deployments on Base
-- Smart filtering system that only displays tokens with:
-  - Active trading pairs and real liquidity
-  - Price movement in the last hour
-  - Legitimate trading patterns
+- Real-time monitoring of Popular Vote Tokens (moderated token list)
+- Smart filtering system with 3 differents modes :
+  - Safe mode (only verified coins)
+  - Discovery mode (all new detected coins)
+  - Sniper mode (all new detected coins with trading activity)
 - Automatic filtering of known liquidity pool tokens and stablecoins
-- Data updates every ~30 seconds to ensure accuracy
+- Manual filtering options including:
+  - Hiding popular vote tokens
+  - Hiding tokens with no market cap data
+  - Hiding inactive pairs
+  - Hiding tokens older than 24 hours
+  - Hiding unverified tokens
+
+### Security Features
+- Integration with trusted platforms (e.g., CLANKER)
+- Security badges indicating:
+  - AI-created tokens
+  - Popular Vote status
+  - Platform verification
+  - Community trust status
 
 ### Token Information
 Each token page displays comprehensive information:
@@ -25,46 +39,24 @@ Each token page displays comprehensive information:
 - DEX information
 - Contract address
 
-### Security Features
-- Integration with trusted platforms (e.g., CLANKER)
-- Security badges indicating:
-  - AI-created tokens
-  - Platform verification
-  - Community trust status
-  - Popular vote status
-- Cached security status for faster loading
-- Trusted token list
-- Popular vote token tracking
-
 ### System Monitoring
 - Real-time system logs (optional display)
-- API and blockchain interaction monitoring
-- Performance optimizations:
-  - Local storage caching
-  - Efficient data updates
-  - Smart refresh mechanisms
 
 ## 🔄 Active Development
 
 This project is currently in active development. New features and improvements are being added regularly:
 
-### Recent Updates (04/04-05/2025)
-- Added security verification system with CLANKER integration
+### Recent Updates
+- Added filtering options and presets
+- Added a link to dexscreener token page
+- Optimized blockchain and api requests
 - Implemented optional system logs display
-- Enhanced token filtering based on price movement
-- Improved UI/UX with security badges
-- Added market cap display with formatted values
-- Implemented popular vote token tracking
-- Added token sorting by first seen timestamp
-- Optimized data refresh mechanisms
-- Added security status caching
+- Fixed some bugs
 
 ### Upcoming Features
 - Additional platform integrations (e.g., CLIZA.ai)
 - Enhanced security verification
 - Advanced filtering options
-- More detailed token analytics
-- Social features and community voting
 
 ## 🛠 Technical Stack
 
@@ -81,9 +73,6 @@ This project is currently in active development. New features and improvements a
   - Base Network blockchain data
   - DexScreener API
   - Platform-specific APIs (CLANKER, etc.)
-- **Storage**:
-  - Local storage for caching
-  - Zustand persist for state persistence
 
 ## ⚠️ Disclaimer
 
@@ -93,10 +82,20 @@ This project is currently in active development. New features and improvements a
 - Past performance does not guarantee future results
 - Trading cryptocurrencies involves substantial risk
 
+## 💝 Support Me
+
+If you find Base Token Tracker useful, consider supporting the project:
+
+- **Buy the official $BTT token**: https://clank.fun/t/0xfe5d4cc8fe6a7455ff92ff85c4ca36a27c5396ab
+- **Follow on Twitter**: [@j1b3n](https://x.com/j1b3n)
+- **Star on GitHub**: Show your support by starring the repository
+- **Share with Others**: Help spread the word about Base Token Tracker
+
+Your support helps maintain and improve the platform for everyone!
+
 ## 🔗 Links
 
 - **Live Site**: https://btt.ovh/
-- **Twitter**: https://x.com/j1b3n
 
 ## 📝 License
 

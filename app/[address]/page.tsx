@@ -6,6 +6,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { logger } from '../utils/logger';
 import { SecurityBadge } from '../components/SecurityBadge';
 import { getTokenSecurityStatus } from '../types/security';
+import { usePublicClient } from 'wagmi';
 
 interface PairData {
   chainId: string;
@@ -132,6 +133,20 @@ const PriceChangeIndicator = ({ value }: { value: number }) => {
   );
 };
 
+const formatCreationTime = (timestamp: number | undefined): string => {
+  if (!timestamp || isNaN(timestamp) || timestamp <= 0) {
+    return 'Creation time unavailable';
+  }
+  // Convert seconds to milliseconds if needed
+  const timeInMs = timestamp > 1e12 ? timestamp : timestamp * 1000;
+  try {
+    return `Created ${formatDistanceToNow(timeInMs, { addSuffix: true })}`;
+  } catch (error) {
+    console.error('Error formatting time:', error);
+    return 'Creation time unavailable';
+  }
+};
+
 export default function TokenDetails({ params }: { params: { address: string } }) {
   const [tokenData, setTokenData] = useState<TokenDetails | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -140,6 +155,7 @@ export default function TokenDetails({ params }: { params: { address: string } }
   const [securityStatus, setSecurityStatus] = useState<any>(null);
   const previousDataRef = useRef<TokenDetails | null>(null);
   const router = useRouter();
+  const publicClient = usePublicClient();
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -159,44 +175,55 @@ export default function TokenDetails({ params }: { params: { address: string } }
     fetchSecurityStatus();
   }, [params.address]);
 
-  const fetchTokenData = async () => {
-    try {
-      logger.api(`Fetching token data for ${params.address}`, 'pending');
-      
-      const [dexScreenerResponse, logoURI] = await Promise.all([
-        fetch(`https://api.dexscreener.com/latest/dex/tokens/${params.address}`),
-        getTokenLogo(params.address),
-      ]);
-
-      if (!dexScreenerResponse.ok) {
-        throw new Error('Failed to fetch token data');
-      }
-
-      const data = await dexScreenerResponse.json();
-      
-      if (data.pairs && data.pairs.length > 0) {
-        data.pairs[0].baseToken.logoURI = logoURI;
-      }
-
-      if (hasDataChanged(previousDataRef.current, data)) {
-        setShowUpdateIndicator(true);
-        setTimeout(() => setShowUpdateIndicator(false), 1000);
-      }
-
-      previousDataRef.current = data;
-      setTokenData(data);
-      logger.api(`Successfully fetched token data for ${params.address}`, 'success');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred';
-      setError(errorMessage);
-      logger.api(`Error fetching token data for ${params.address}`, 'error', errorMessage);
-    }
-  };
-
   useEffect(() => {
+    let intervalId: NodeJS.Timeout;
+
+    const fetchTokenData = async () => {
+      try {
+        logger.api(`Fetching token data for ${params.address}`, 'pending');
+        
+        const [dexScreenerResponse, logoURI] = await Promise.all([
+          fetch(`https://api.dexscreener.com/latest/dex/tokens/${params.address}`),
+          getTokenLogo(params.address),
+        ]);
+
+        if (!dexScreenerResponse.ok) {
+          throw new Error('Failed to fetch token data');
+        }
+
+        const data = await dexScreenerResponse.json();
+        
+        if (data.pairs && data.pairs.length > 0) {
+          data.pairs[0].baseToken.logoURI = logoURI;
+        }
+
+        if (hasDataChanged(previousDataRef.current, data)) {
+          setShowUpdateIndicator(true);
+          setTimeout(() => setShowUpdateIndicator(false), 1000);
+        }
+
+        previousDataRef.current = data;
+        setTokenData(data);
+        logger.api(`Successfully fetched token data for ${params.address}`, 'success');
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'An error occurred';
+        setError(errorMessage);
+        logger.api(`Error fetching token data for ${params.address}`, 'error', errorMessage);
+      }
+    };
+
+    // Initial fetch
     fetchTokenData();
-    const interval = setInterval(fetchTokenData, 10000);
-    return () => clearInterval(interval);
+
+    // Set up interval for subsequent fetches
+    intervalId = setInterval(fetchTokenData, 10000);
+
+    // Cleanup
+    return () => {
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [params.address]);
 
   if (!tokenData) {
@@ -291,7 +318,7 @@ export default function TokenDetails({ params }: { params: { address: string } }
                     {mainPair.baseToken.symbol}
                   </span>
                   <span className="token-time">
-                    Created {formatDistanceToNow(mainPair.pairCreatedAt, { addSuffix: true })}
+                    {formatCreationTime(mainPair.pairCreatedAt)}
                   </span>
                 </div>
                 <SecurityBadge address={mainPair.baseToken.address} />

@@ -1,3 +1,5 @@
+import { logger } from '../utils/logger';
+
 export interface SecurityStatus {
   isAICreated: boolean;
   platform?: {
@@ -20,11 +22,11 @@ export const TRUSTED_PLATFORMS = {
 } as const;
 
 // List of trusted token addresses (lowercase)
-const TRUSTED_TOKENS = [
-  '0x712f43b21cf3e1b189c27678c0f551c08c01d150',
+export const TRUSTED_TOKENS = [
   '0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf',
   '0xfa980ced6895ac314e7de34ef1bfae90a5add21b',
-  '0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4'
+  '0x712f43b21cf3e1b189c27678c0f551c08c01d150',
+  '0x6985884c4392d348587b19cb9eaaf157f13271cd'
 ];
 
 // List of popular vote token addresses (lowercase)
@@ -55,20 +57,54 @@ export const POPULAR_VOTE_TOKENS = [
   '0x731814e491571a2e9ee3c5b1f7f3b962ee8f4870',
   '0x0b3e328455c4059eeb9e3f84b5543f74e24e7e1b',
   '0x4ed4e862860bed51a9570b96d89af5e1b0efefed',
-  '0x8c9037d1ef5c6d1f6816278c7aaf5491d24cd527'
+  '0x8c9037d1ef5c6d1f6816278c7aaf5491d24cd527',
+  '0x712f43b21cf3e1b189c27678c0f551c08c01d150',
+  '0xfb42da273158b0f642f59f2ba7cc1d5457481677',
+  '0x02d4f76656c2b4f58430e91f8ac74896c9281cb9',
+  '0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4'
 ];
 
+// In-memory cache for CLANKER verification results
+const clankerVerificationCache: Record<string, boolean> = {};
+
 const checkClankerToken = async (address: string): Promise<boolean> => {
+  const normalizedAddress = address.toLowerCase();
+  
+  // Check cache first
+  if (normalizedAddress in clankerVerificationCache) {
+    return clankerVerificationCache[normalizedAddress];
+  }
+
   try {
-    // Use our API route instead of direct request
+    logger.api(`Checking CLANKER verification for ${address}`, 'pending');
     const response = await fetch(`/api/verify-clanker?address=${address}`);
+    
     if (!response.ok) {
-      throw new Error('Failed to verify token');
+      const error = `API error: ${response.status}`;
+      logger.api(`CLANKER verification failed for ${address}`, 'error', error);
+      throw new Error(error);
     }
+    
     const data = await response.json();
+    
+    // Cache the result
+    clankerVerificationCache[normalizedAddress] = data.exists;
+    
+    logger.api(
+      `CLANKER verification completed for ${address}`,
+      'success',
+      `Result: ${data.exists ? 'Verified' : 'Not found'}`
+    );
     return data.exists;
   } catch (error) {
-    console.error('Error checking CLANKER token:', error);
+    // Cache negative result on error
+    clankerVerificationCache[normalizedAddress] = false;
+    
+    logger.api(
+      `CLANKER verification error for ${address}`,
+      'error',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return false;
   }
 };
@@ -108,7 +144,11 @@ export const getTokenSecurityStatus = async (address: string): Promise<SecurityS
     // This will be expanded when we add CLIZA verification
     return null;
   } catch (error) {
-    console.error('Error getting token security status:', error);
+    logger.api(
+      `Error getting security status for ${address}`,
+      'error',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
     return null;
   }
 };

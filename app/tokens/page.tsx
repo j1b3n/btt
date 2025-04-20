@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { POPULAR_VOTE_TOKENS } from '../types/security';
+import { TRUSTED_TOKENS, POPULAR_VOTE_TOKENS } from '../types/security';
 
 interface TokenList {
   trusted: string[];
@@ -10,12 +10,7 @@ interface TokenList {
 
 export default function TokensPage() {
   const [tokens, setTokens] = useState<TokenList>({
-    trusted: [
-      '0x712f43b21cf3e1b189c27678c0f551c08c01d150',
-      '0xacfe6019ed1a7dc6f7b508c02d1b04ec88cc21bf',
-      '0xfa980ced6895ac314e7de34ef1bfae90a5add21b',
-      '0x1dd2d631c92b1acdfcdd51a0f7145a50130050c4'
-    ],
+    trusted: TRUSTED_TOKENS,
     popularVote: POPULAR_VOTE_TOKENS
   });
 

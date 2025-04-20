@@ -5,33 +5,42 @@ import { createConfig, http, WagmiProvider, fallback } from 'wagmi';
 import { base } from 'wagmi/chains';
 import { OnchainKitProvider } from '@coinbase/onchainkit';
 import type { ReactNode } from 'react';
+import { logger } from './utils/logger';
 
 const rpcUrls = [
-  'https://mainnet.base.org',
   'https://base.publicnode.com',
-  'https://base.meowrpc.com',
-  'https://base.drpc.org',
-  'https://1rpc.io/base'
+  'https://mainnet.base.org',
+  'https://base.drpc.org'
 ];
+
+const getBaseUrl = (url: string) => {
+  try {
+    const urlObj = new URL(url);
+    return `${urlObj.protocol}//${urlObj.hostname}`;
+  } catch (e) {
+    return url;
+  }
+};
+
+const createTransport = (url: string, isPrimary = false) => 
+  http(url, {
+    timeout: 20000,
+    retryCount: isPrimary ? 3 : 2,
+    retryDelay: 1000,
+    batch: {
+      batchSize: 512,
+      wait: 16,
+    },
+    fetchOptions: {
+      cache: 'no-store',
+    }
+  });
 
 const config = createConfig({
   chains: [base],
   transports: {
     [base.id]: fallback(
-      rpcUrls.map(url => 
-        http(url, {
-          timeout: 30_000,
-          batch: {
-            batchSize: 1024,
-            wait: 16,
-          },
-          retryCount: 3,
-          retryDelay: 1000,
-          fetchOptions: {
-            cache: 'no-store',
-          },
-        })
-      )
+      rpcUrls.map((url, index) => createTransport(url, index === 0))
     ),
   },
 });
@@ -39,7 +48,10 @@ const config = createConfig({
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      retry: 3,
+      retry: (failureCount, error: any) => {
+        if (error?.code === -32016) return false;
+        return failureCount < 3;
+      },
       retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
       staleTime: 5000,
       gcTime: 10000,

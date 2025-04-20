@@ -25,6 +25,15 @@
   --trusted-badge-bg: rgba(139, 92, 246, 0.1);
   --trusted-badge-border: rgba(139, 92, 246, 0.2);
   --trusted-badge-text: #8B5CF6;
+  --sniper-mode-bg: rgba(236, 72, 153, 0.1);
+  --sniper-mode-border: rgba(236, 72, 153, 0.2);
+  --sniper-mode-text: #D7A2F7;
+  --cool-mode-bg: rgba(45, 212, 191, 0.1);
+  --cool-mode-border: rgba(45, 212, 191, 0.2);
+  --cool-mode-text: #2DD4BF;
+  --discovery-mode-bg: rgba(239, 68, 68, 0.1);
+  --discovery-mode-border: rgba(239, 68, 68, 0.2);
+  --discovery-mode-text: #FF3737;
 }
 
 * {

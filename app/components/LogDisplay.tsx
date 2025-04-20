@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useLoggerStore } from '../utils/logger';
 
 export const LogDisplay = () => {
@@ -14,7 +14,7 @@ export const LogDisplay = () => {
   }, []);
 
   useEffect(() => {
-    if (logs.length > 0) {
+    if (logs.length > 0 && logs[0] !== latestLog) {
       setLatestLog(logs[0]);
     }
   }, [logs]);

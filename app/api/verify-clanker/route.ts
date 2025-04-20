@@ -8,8 +8,11 @@ export async function GET(request: Request) {
     const address = searchParams.get('address');
 
     if (!address) {
+      console.log('[CLANKER] Error: Address parameter is missing');
       return NextResponse.json({ error: 'Address is required' }, { status: 400 });
     }
+
+    console.log(`[CLANKER] Verifying token: ${address}`);
 
     const response = await fetch(`https://www.clanker.world/clanker/${address}`, {
       headers: {
@@ -17,12 +20,20 @@ export async function GET(request: Request) {
       }
     });
 
+    if (!response.ok) {
+      console.log(`[CLANKER] API error: ${response.status}`);
+      return NextResponse.json({ error: 'Failed to verify token' }, { status: 500 });
+    }
+
     const text = await response.text();
     const exists = !text.includes('Token Not Found');
 
+    console.log(`[CLANKER] Token ${address} verification result: ${exists ? 'verified' : 'not found'}`);
+
     return NextResponse.json({ exists });
   } catch (error) {
-    console.error('Error verifying CLANKER token:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[CLANKER] Verification error:', errorMessage);
     return NextResponse.json({ error: 'Failed to verify token' }, { status: 500 });
   }
 }
