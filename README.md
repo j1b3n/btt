@@ -19,7 +19,6 @@ Base Token Tracker is available as a Progressive Web App, offering a seamless, a
 ### PWA Features
 - 🚀 **Fast Loading**: Cached resources for instant startup.
 - 📱 **Native Feel**: Full-screen experience without browser UI.
-- 🔄 **Offline Support**: Basic functionality works without internet.
 - 📊 **Background Sync**: Data syncs when connection is restored.
 
 ### Technical Implementation
