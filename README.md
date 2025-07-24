@@ -107,7 +107,8 @@ This project is currently in **active development** (Alpha stage). New features,
 *   Fixed various bugs and improved UI/UX.
 
 ### Upcoming Features
-*   Additional platform integrations (e.g., Virtuals).
+*   Portfolio page: display your holdings and add them to the monitoring system.
+*   Additional platform integrations.
 *   Enhanced security verification mechanisms.
 *   More advanced filtering and notification options.
 *   **Coming Soon**: Light Mode for UI customization.
