@@ -48,7 +48,6 @@ BTT offers a comprehensive suite of features to enhance your token tracking expe
     *   AI-created tokens
     *   Popular Vote status
     *   Platform verification (e.g., CLANKER)
-    *   Community trust level
 
 ### Comprehensive Token Information
 Each token's dedicated page provides in-depth data:
