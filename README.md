@@ -71,12 +71,12 @@ BTT offers a comprehensive suite of features to enhance your token tracking expe
     *   Popular Vote status
 
 ### Portfolio Management
-*   **Wallet Integration**: Connect your wallet to view token holdings automatically.
 *   **Portfolio Tracking**: Monitor your token portfolio with real-time valuations.
 *   **Quick Monitoring**: Add portfolio tokens to active monitoring with one click.
 
 ### Comprehensive Token Information
 Each token's dedicated page provides in-depth data:
+*   EXCLUSIVE FEATURE: instantly switch different trading pairs from your token (up to 30) for full page data update including chart and realtime trades, preview essential pairs infos in the "Trading Pairs" dropdown menu
 *   Token name, symbol, and creation time
 *   Current price in USD
 *   Market capitalization
