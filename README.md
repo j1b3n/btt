@@ -98,7 +98,7 @@ Unlock advanced capabilities by holding $BTT tokens:
 
 Base Token Tracker is built with modern and robust technologies:
 
-*   **Framework**: Next.js 14 (React) with App Router
+*   **Framework**: Next.js 15 (React) with App Router
 *   **Language**: TypeScript
 *   **State Management**: Zustand (for global state) & React Query (for API data fetching and caching)
 *   **Blockchain Integration**: wagmi v2 & viem (for Ethereum interactions)
