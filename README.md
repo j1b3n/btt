@@ -114,7 +114,6 @@ Base Token Tracker is built with modern and robust technologies:
     *   **Clanker.world** - Clanker token verification and identification
     *   **Zora.co** - Zora token verification and identification
     *   **Virtuals.io** - Virtuals tokens mapping
-    *   **Zapper.xyz** - Tokens Logos
     *   **Clank.fun** - Logos, banners, market data, and Virtual token verification
 
 ---
