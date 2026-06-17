@@ -6,7 +6,7 @@
 
 <p align="center">
   <a href="https://btt.ovh"><img src="https://img.shields.io/badge/Live-btt.ovh-blue?style=for-the-badge" alt="Live Site"/></a>
-  <a href="https://github.com/j1b3n/btt"><img src="https://img.shields.io/badge/Version-0.5.0--alpha-orange?style=for-the-badge" alt="Version"/></a>
+  <a href="https://github.com/j1b3n/btt"><img src="https://img.shields.io/badge/Version-0.6.0--beta-blue?style=for-the-badge" alt="Version"/></a>
   <a href="https://twitter.com/j1b3n"><img src="https://img.shields.io/twitter/follow/j1b3n?style=for-the-badge&logo=x&color=1DA1F2" alt="Twitter"/></a>
 </p>
 
@@ -73,6 +73,15 @@ BTT offers a comprehensive suite of features to enhance your token tracking expe
 ### Portfolio Management
 *   **Portfolio Tracking**: Monitor your token portfolio with real-time valuations.
 *   **Quick Monitoring**: Add portfolio tokens to active monitoring with one click.
+*   **History & Charts**: Track your portfolio's value over time with historical charts.
+*   **Set Origin**: Snapshot a baseline at any point in time to measure variation % and momentum from there.
+*   **Transfer Dialog**: Move tracked tokens between wallets without losing your history.
+
+### Multi-Chart View
+*   Dedicated **/charts** page to monitor several tokens' price action side by side.
+
+### In-App Swap (Premium)
+*   Swap tokens directly from BTT without leaving the app, powered by 0x.
 
 ### Comprehensive Token Information
 Each token's dedicated page provides in-depth data:
@@ -91,6 +100,8 @@ Each token's dedicated page provides in-depth data:
 Unlock advanced capabilities by holding $BTT tokens:
 *   **Add Favorite Tokens**: Instantly add any token to your favorites list and send them to monitor at anytime.
 *   **Add Custom Tokens to Favorites**: Manually add any Base network token to your personal favorites list by its contract address.
+*   **IPFS Sync**: Favorites and portfolio data (including Set Origin baselines) sync across devices via decentralized IPFS storage, secured by a one-time wallet signature — no accounts, no central server.
+*   **In-App Swap**: Trade tokens without leaving BTT.
 
 ---
 
@@ -103,7 +114,9 @@ Base Token Tracker is built with modern and robust technologies:
 *   **State Management**: Zustand (for global state) & React Query (for API data fetching and caching)
 *   **Blockchain Integration**: wagmi v2 & viem (for Ethereum interactions)
 *   **Web3 Tools**: OnchainKit by Coinbase
-*   **Styling**: Custom CSS modules with dark/light mode support
+*   **Decentralized Storage**: IPFS-backed sync (Filebase) for premium favorites & portfolio data
+*   **Swaps**: 0x for in-app token swaps
+*   **Styling**: Custom CSS modules, dark mode
 *   **Analytics**: Vercel Analytics & Speed Insights
 *   **Data Sources**:
     *   **Base Network** - Blockchain data and on-chain events
@@ -120,22 +133,27 @@ Base Token Tracker is built with modern and robust technologies:
 
 ## 🚧 Project Status & Active Development
 
-This project is currently in **active development** (Alpha 0.5.0). New features, optimizations, and improvements are being added regularly. While efforts are made to ensure stability, you may encounter bugs or incomplete features.
+This project is currently in **active development** (Beta 0.6.0). New features, optimizations, and improvements are being added regularly. While efforts are made to ensure stability, you may encounter bugs or incomplete features.
+
+### Recent Updates (Beta 0.6.0)
+*   **NEW**: IPFS sync for favorites & portfolio (Premium) — decentralized, wallet-signature secured, non-destructive merges
+*   **NEW**: Portfolio overhaul — historical value charts, Set Origin baselines, transfer dialog between wallets
+*   **NEW**: In-app token swap (Premium), powered by 0x
+*   **NEW**: Multi-chart view (`/charts`) to monitor several tokens side by side
+*   Favorites and token lists default to a denser table view
+*   Updated to Next.js 15
 
 ### Recent Updates (Alpha 0.5.0)
-*   **NEW**: Multi-platform token verification (Clanker, Zora, Virtuals integrations)
-*   **NEW**: Portfolio page with wallet integration and holdings display
-*   **NEW**: New Tokens Mode rebuilded with improved UX and performance
-*   **NEW**: Responsive design optimized for mobile devices
-*   **NEW**: Token page improved with pairs instant switching and more data 
+*   Multi-platform token verification (Clanker, Zora, Virtuals integrations)
+*   Portfolio page with wallet integration and holdings display
+*   New Tokens Mode rebuilded with improved UX and performance
+*   Responsive design optimized for mobile devices
+*   Token page improved with pairs instant switching and more data
 *   Performance optimizations and caching improvements
 
 ### Upcoming Features
-*   IPFS storage for decentralized favorite token management
-*   Light mode theme option
 *   More detection modes
 *   Enhanced portfolio analytics and performance tracking
-*   In-app token swap
 
 
 ---
@@ -149,7 +167,7 @@ A: No, basic features (token tracking, price monitoring) work without wallet con
 A: Real-time for new token detection and blockchain events. Market data (prices, volume, liquidity) refreshes every 30-60 seconds depending on the token.
 
 **Q: Is my data stored on servers?**
-A: No! All your preferences, favorites, and settings are stored locally in your browser using localStorage. We don't collect or store personal data on our servers. Your privacy is guaranteed.
+A: By default, no — all your preferences, favorites, and settings are stored locally in your browser using localStorage, and we never collect or store personal data. Premium ($BTT holders) can opt into IPFS sync for favorites and portfolio data to access them across devices; this requires a one-time wallet signature and is stored per wallet address on decentralized storage, not a central database.
 
 **Q: Which tokens are monitored?**
 A: In "New Tokens" mode, BTT detects tokens mint events on Base network, which are ofter tokens creations but not only. In "Known Tokens" mode, it tracks your manually added favorites and portfolio tokens, and you can also activate the "Popular Tokens" detection which is a curated list of popular tokens with historical positive performance and community trust.
@@ -199,7 +217,7 @@ Your support helps maintain and improve the platform for everyone! 🚀
 
 ## 📄 License
 
-Copyright © 2025 Base Token Tracker. All rights reserved.
+Copyright © 2026 Base Token Tracker. All rights reserved.
 
 ---
 
